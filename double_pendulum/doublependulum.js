@@ -52,7 +52,7 @@ minimize for the 'correct' initial constraints via maxent using some minor varia
 //Double Pendulum class
 //le platonic ideal
 export class DPend {
-
+    
     g=9.81 //m/s^2
     m1=1 //mass 1
     m2=1 //mass 2
@@ -103,16 +103,16 @@ export class DPend {
         const t = this;
 
         //update angular accelerations
-        t.Θ1ddt = ( -t.g*(2*t.m1 + t.m2)*Math.sin(t.Θ1) - t.m2*t.g*Math.sin(t.Θ1 - 2*t.Θ2) - 2*Math.sin(t.Θ1 - t.Θ2)*t.m2*(t.Θ1dt^2 * t.L2 + t.Θ1dt^2 * t.L1 * Math.cos(t.Θ1 - t.Θ2)) ) /   
-                        t.L1*(2*t.m1 + t.m2 - t.m2*Math.cos(2*t.Θ1 - 2*t.Θ2) );
+        t.Θ1ddt = ( -t.g*(2*t.m1 + t.m2)*Math.sin(t.Θ1) - t.m2*t.g*Math.sin(t.Θ1 - 2*t.Θ2) - 2*Math.sin(t.Θ1 - t.Θ2)*t.m2*(t.Θ1dt*t.Θ1dt * t.L2 + t.Θ1dt*t.Θ1dt * t.L1 * Math.cos(t.Θ1 - t.Θ2)) ) /   
+                        (t.L1*(2*t.m1 + t.m2 - t.m2*Math.cos(2*t.Θ1 - 2*t.Θ2)) );
 
-        t.Θ2ddt = ( 2*Math.sin(t.Θ1-t.Θ2)*(t.Θ1dt^2 * t.L1*(t.m1 + t.m2) + t.g*(t.m1 + t.m2)*Math.cos(t.Θ1) + t.Θ2dt^2 * t.L2*t.m2*Math.cos(t.Θ1 - t.Θ2)) ) /   
-                        t.L2*(2*t.m1 + t.m2 - t.m2*Math.cos(2*t.Θ1 - 2*t.Θ2) );
+        t.Θ2ddt = ( 2*Math.sin(t.Θ1-t.Θ2)*(t.Θ1dt*t.Θ1dt * t.L1*(t.m1 + t.m2) + t.g*(t.m1 + t.m2)*Math.cos(t.Θ1) + t.Θ2dt*t.Θ2dt * t.L2*t.m2*Math.cos(t.Θ1 - t.Θ2)) ) /   
+                        (t.L2*(2*t.m1 + t.m2 - t.m2*Math.cos(2*t.Θ1 - 2*t.Θ2)) );
     
         if(dt !== 0) {
             //update angular velocities
-            t.Θ1dt=t.Θ1dt*t.loss+t.Θ1ddt*dt - t.g*Math.sin(t.Θ1);
-            t.Θ2dt=t.Θ2dt*t.loss+t.Θ2ddt*dt - t.g*Math.sin(t.Θ2);
+            t.Θ1dt = t.Θ1dt*t.loss + t.Θ1ddt*dt// - dt*t.g*Math.abs(Math.sin(t.Θ1));
+            t.Θ2dt = t.Θ2dt*t.loss + t.Θ2ddt*dt// - dt*t.g*Math.abs(Math.sin(t.Θ2));
 
             //update angles
             t.Θ1=t.Θ1+t.Θ1dt*dt;
@@ -127,13 +127,13 @@ export class DPend {
 
         return true;
     }
-
+                
     //https://diego.assencio.com/?index=1500c66ae7ab27bb0106467c68feebc6
     lagrangian() {
         const t = this;
         
-        let KineticEn = 0.5*t.m1*t.L1^2 * t.Θ1dt^2 
-                            + 0.5*t.m2*(t.L1^2 * t.Θ1dt^2 
+        let KineticEn = 0.5*t.m1*t.L1*t.L1 * t.Θ1dt*t.Θ1dt
+                            + 0.5*t.m2*(t.L1*t.L1 * t.Θ1dt*t.Θ1dt
                             + 2*t.L1*t.L2*t.Θ1dt*t.Θ2dt*Math.cos(t.Θ1-t.Θ2));
         let PotentialEn = -(t.m1 + t.m2)*t.g*t.L1*Math.cos(t.Θ1) 
                             - t.m2*t.g*t.L2*Math.cos(t.Θ2);
@@ -146,8 +146,8 @@ export class DPend {
     hamiltonian() {
         const t = this;
         
-        let KineticEn = 0.5*t.m1*t.L1^2 * t.Θ1dt^2 
-                            + 0.5*t.m2*(t.L1^2 * t.Θ1dt^2 
+        let KineticEn = 0.5*t.m1*t.L1*t.L1 * t.Θ1dt*t.Θ1dt 
+                            + 0.5*t.m2*(t.L1*t.L1 * t.Θ1dt*t.Θ1dt
                             + 2*t.L1*t.L2*t.Θ1dt*t.Θ2dt*Math.cos(t.Θ1-t.Θ2));
         let PotentialEn = -(t.m1 + t.m2)*t.g*t.L1*Math.cos(t.Θ1) 
                             - t.m2*t.g*t.L2*Math.cos(t.Θ2);
@@ -159,8 +159,12 @@ export class DPend {
 
     canonical_momenta() {
         const t = this;
-        let ðLðΘ1 = (t.m1+t.m2)*t.Θ1dt*t.L1^2 + t.m2*t.L1*t.L2*t.Θ2dt*Math.cos(t.Θ1 - t.Θ2);
-        let ðLðΘ2 = t.m2*t.Θ2dt*t.L2^2 + t.m2*t.L1*t.L2*t.Θ1dt*Math.cos(t.Θ1-t.Θ2);
+
+        let ðLðΘ1 = (t.m1+t.m2)*t.Θ1dt*t.L1*t.L1
+                        + t.m2*t.L1*t.L2*t.Θ2dt*Math.cos(t.Θ1 - t.Θ2);
+
+        let ðLðΘ2 = t.m2*t.Θ2dt*t.L2*t.L2
+                        + t.m2*t.L1*t.L2*t.Θ1dt*Math.cos(t.Θ1 - t.Θ2);
 
         return {
             p1:ðLðΘ1,  //p = m*v ... so v = p/m and x = (p/m)*dt
@@ -168,14 +172,14 @@ export class DPend {
         };
     }
 
-    //step forward using the canonical momenta obtained from the lagrangian
+    //step forward using the canonical momenta obtained from the euler-lagrangian equations
     lstep(dt) {
         const t = this; 
 
         let p = this.canonical_momenta();
 
-        t.Θ1dt += dt*p.p1/t.m1;
-        t.Θ2dt += dt*p.p2/t.m2;
+        t.Θ1dt = t.Θ1dt*t.loss + dt*p.p1/t.m1 - dt*t.g*Math.abs(Math.sin(t.Θ1));
+        t.Θ2dt = t.Θ2dt*t.loss + dt*p.p2/t.m2 - dt*t.g*Math.abs(Math.sin(t.Θ2));
 
         t.Θ1 += t.Θ1dt*dt; 
         t.Θ2 += t.Θ2dt*dt;
@@ -201,7 +205,7 @@ export class DPend {
     second_order_diffs() {
         const t = this;
 
-        let f1 = -(t.L2/t.L1)*(t.m2/(t.m1+t.m2))*Math.sin(t.Θ1-t.Θ2)*t.Θ1dt^2 - (t.g/t.L1)*Math.sin(t.Θ1);
+        let f1 = -(t.L2/t.L1)*(t.m2/(t.m1+t.m2))*Math.sin(t.Θ1-t.Θ2)*t.Θ1dt*t.Θ1dt - (t.g/t.L1)*Math.sin(t.Θ1);
         let f2 = (t.L1/t.L2)*Math.sin(t.Θ1-t.Θ2) - (t.g/t.L2)*Math.sin(t.Θ2);
 
         return {f1, f2};
@@ -222,8 +226,8 @@ export class DPend {
         let f = this.second_order_diffs();
         let a = this.alphas();
 
-        t.Θ1dt += dt*(f.f1 - a.a1*f.f2) / (1 - a.a1*a.a2);
-        t.Θ2dt += dt*(f.f2 - a.a1*f.f1) / (1 - a.a1*a.a2);
+        t.Θ1dt = t.Θ1dt*t.loss - dt*t.g*Math.abs(Math.sin(t.Θ1)) + dt*(f.f1 - a.a1*f.f2) / (1 - a.a1*a.a2);
+        t.Θ2dt = t.Θ2dt*t.loss - dt*t.g*Math.abs(Math.sin(t.Θ2)) + dt*(f.f2 - a.a1*f.f1) / (1 - a.a1*a.a2);
 
         t.Θ1 += t.Θ1dt*dt; 
         t.Θ2 += t.Θ2dt*dt;
@@ -239,110 +243,6 @@ export class DPend {
 
     //given the same initial conditions, all 3 methods should perform the same
 
-}
-
-
-function drawCircle(ctx, centerX, centerY, radius, fill='green', strokewidth=5, strokestyle='#003300') {
-    ctx.beginPath();
-    ctx.arc(centerX, centerY, radius, 0, 2 * Math.PI, false);
-    ctx.fillStyle = fill;
-    ctx.fill();
-    ctx.lineWidth = strokewidth;
-    ctx.strokeStyle = strokestyle;
-    ctx.stroke();
-    }
-
-function drawLine(
-    ctx,
-    from={x:0,y:0},
-    to={x:1,y:1},
-    strokewidth=5,
-    strokestyle='#003300'
-    ) {
-    ctx.beginPath();
-    ctx.lineWidth = strokewidth;
-    ctx.strokeStyle = strokestyle;
-    ctx.moveTo(from.x, from.y);
-    ctx.lineTo(to.x, to.y);
-    ctx.stroke();
-}
-
-export function animatePendulum(
-    canvas, 
-    initialConditions={
-        g:9.81, //m/s^2
-        m1:1,   //mass 1
-        m2:1,   //mass 2
-        L1:1,   //length 1
-        L2:1,   //length 2
-        Θ1:DPend.dtr(-30), // angle 1
-        Θ2:DPend.dtr(30), // angle 2
-        Θ1dt:0, // angular velocity 1
-        Θ1ddt:0,// angular accel 1
-        Θ2dt:0, //  angular velocity 2
-        Θ2ddt:0, //angular accel 2
-        loss:0.99
-    },
-    speed=1
-) {
-
-    let ctx = canvas.getContext('2d');
-
-    let pend = new DPend(initialConditions);
-
-    let start = performance.now();
-
-    let anim = {key:undefined};
-
-    let draw = (lasttime) => {
-        
-        let time = performance.now();
-        let dt = time - lasttime;
-        pend.step(dt*speed);
-        
-        const positionScalar = canvas.height*0.45;
-        const radius = Math.sqrt(canvas.height*canvas.width)*0.03;
-
-        let centerX = canvas.width*0.5;
-
-        ctx.clearRect(0,0,canvas.width,canvas.height);
-
-        drawLine(
-            ctx,
-            {x:centerX,y:0},
-            {x:centerX+pend.x1*positionScalar,y:-pend.y1*positionScalar},
-            'black'
-        );
-
-        drawLine(
-            ctx,
-            {x:centerX+pend.x1*positionScalar,y:-pend.y1*positionScalar},
-            {x:centerX+pend.x2*positionScalar,y:-pend.y2*positionScalar},
-            'black'
-        );
-
-        drawCircle(
-            ctx,
-            centerX+pend.x1*positionScalar,
-            -pend.y1*positionScalar,
-            radius
-        );
-        
-        drawCircle(
-            ctx,
-            centerX+pend.x2*positionScalar,
-            -pend.y2*positionScalar,
-            radius
-        );    
-
-        anim.key = requestAnimationFrame(()=>{
-            draw(time);
-        });
-
-    }
-
-    anim.key = requestAnimationFrame(()=>{draw(start);}); 
-    return anim;
 
 }
 

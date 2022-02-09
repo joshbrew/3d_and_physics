@@ -54,16 +54,16 @@
                     const t = this;
     
                     //update angular accelerations
-                    t.Θ1ddt = ( -t.g*(2*t.m1 + t.m2)*Math.sin(t.Θ1) - t.m2*t.g*Math.sin(t.Θ1 - 2*t.Θ2) - 2*Math.sin(t.Θ1 - t.Θ2)*t.m2*(t.Θ1dt^2 * t.L2 + t.Θ1dt^2 * t.L1 * Math.cos(t.Θ1 - t.Θ2)) ) /   
-                                    t.L1*(2*t.m1 + t.m2 - t.m2*Math.cos(2*t.Θ1 - 2*t.Θ2) );
+                    t.Θ1ddt = ( -t.g*(2*t.m1 + t.m2)*Math.sin(t.Θ1) - t.m2*t.g*Math.sin(t.Θ1 - 2*t.Θ2) - 2*Math.sin(t.Θ1 - t.Θ2)*t.m2*(t.Θ1dt*t.Θ1dt * t.L2 + t.Θ1dt*t.Θ1dt * t.L1 * Math.cos(t.Θ1 - t.Θ2)) ) /   
+                                    (t.L1*(2*t.m1 + t.m2 - t.m2*Math.cos(2*t.Θ1 - 2*t.Θ2)) );
     
-                    t.Θ2ddt = ( 2*Math.sin(t.Θ1-t.Θ2)*(t.Θ1dt^2 * t.L1*(t.m1 + t.m2) + t.g*(t.m1 + t.m2)*Math.cos(t.Θ1) + t.Θ2dt^2 * t.L2*t.m2*Math.cos(t.Θ1 - t.Θ2)) ) /   
-                                    t.L2*(2*t.m1 + t.m2 - t.m2*Math.cos(2*t.Θ1 - 2*t.Θ2) );
+                    t.Θ2ddt = ( 2*Math.sin(t.Θ1-t.Θ2)*(t.Θ1dt*t.Θ1dt * t.L1*(t.m1 + t.m2) + t.g*(t.m1 + t.m2)*Math.cos(t.Θ1) + t.Θ2dt*t.Θ2dt * t.L2*t.m2*Math.cos(t.Θ1 - t.Θ2)) ) /   
+                                    (t.L2*(2*t.m1 + t.m2 - t.m2*Math.cos(2*t.Θ1 - 2*t.Θ2)) );
                 
                     if(dt !== 0) {
                         //update angular velocities
-                        t.Θ1dt = t.Θ1dt*t.loss + t.Θ1ddt*dt - dt*t.g*Math.sin(t.Θ1);
-                        t.Θ2dt = t.Θ2dt*t.loss + t.Θ2ddt*dt - dt*t.g*Math.sin(t.Θ2);
+                        t.Θ1dt = t.Θ1dt*t.loss + t.Θ1ddt*dt// - dt*t.g*Math.abs(Math.sin(t.Θ1));
+                        t.Θ2dt = t.Θ2dt*t.loss + t.Θ2ddt*dt// - dt*t.g*Math.abs(Math.sin(t.Θ2));
     
                         //update angles
                         t.Θ1=t.Θ1+t.Θ1dt*dt;
@@ -83,8 +83,8 @@
                 lagrangian() {
                     const t = this;
                     
-                    let KineticEn = 0.5*t.m1*t.L1^2 * t.Θ1dt^2 
-                                        + 0.5*t.m2*(t.L1^2 * t.Θ1dt^2 
+                    let KineticEn = 0.5*t.m1*t.L1*t.L1 * t.Θ1dt*t.Θ1dt
+                                        + 0.5*t.m2*(t.L1*t.L1 * t.Θ1dt*t.Θ1dt
                                         + 2*t.L1*t.L2*t.Θ1dt*t.Θ2dt*Math.cos(t.Θ1-t.Θ2));
                     let PotentialEn = -(t.m1 + t.m2)*t.g*t.L1*Math.cos(t.Θ1) 
                                         - t.m2*t.g*t.L2*Math.cos(t.Θ2);
@@ -97,8 +97,8 @@
                 hamiltonian() {
                     const t = this;
                     
-                    let KineticEn = 0.5*t.m1*t.L1^2 * t.Θ1dt^2 
-                                        + 0.5*t.m2*(t.L1^2 * t.Θ1dt^2 
+                    let KineticEn = 0.5*t.m1*t.L1*t.L1 * t.Θ1dt*t.Θ1dt 
+                                        + 0.5*t.m2*(t.L1*t.L1 * t.Θ1dt*t.Θ1dt
                                         + 2*t.L1*t.L2*t.Θ1dt*t.Θ2dt*Math.cos(t.Θ1-t.Θ2));
                     let PotentialEn = -(t.m1 + t.m2)*t.g*t.L1*Math.cos(t.Θ1) 
                                         - t.m2*t.g*t.L2*Math.cos(t.Θ2);
@@ -111,10 +111,10 @@
                 canonical_momenta() {
                     const t = this;
 
-                    let ðLðΘ1 = (t.m1+t.m2)*t.Θ1dt*t.L1^2 
+                    let ðLðΘ1 = (t.m1+t.m2)*t.Θ1dt*t.L1*t.L1
                                     + t.m2*t.L1*t.L2*t.Θ2dt*Math.cos(t.Θ1 - t.Θ2);
 
-                    let ðLðΘ2 = t.m2*t.Θ2dt*t.L2^2 
+                    let ðLðΘ2 = t.m2*t.Θ2dt*t.L2*t.L2
                                     + t.m2*t.L1*t.L2*t.Θ1dt*Math.cos(t.Θ1 - t.Θ2);
 
                     return {
@@ -129,8 +129,8 @@
 
                     let p = this.canonical_momenta();
 
-                    t.Θ1dt = dt*p.p1/t.m1 - dt*t.g*Math.sin(t.Θ1);
-                    t.Θ2dt = dt*p.p2/t.m2 - dt*t.g*Math.sin(t.Θ2);
+                    t.Θ1dt += dt*p.p1/t.m1 - dt*t.g*Math.abs(Math.sin(t.Θ1));
+                    t.Θ2dt += dt*p.p2/t.m2 - dt*t.g*Math.abs(Math.sin(t.Θ2));
 
                     t.Θ1 += t.Θ1dt*dt; 
                     t.Θ2 += t.Θ2dt*dt;
@@ -156,7 +156,7 @@
                 second_order_diffs() {
                     const t = this;
 
-                    let f1 = -(t.L2/t.L1)*(t.m2/(t.m1+t.m2))*Math.sin(t.Θ1-t.Θ2)*t.Θ1dt^2 - (t.g/t.L1)*Math.sin(t.Θ1);
+                    let f1 = -(t.L2/t.L1)*(t.m2/(t.m1+t.m2))*Math.sin(t.Θ1-t.Θ2)*(t.Θ1dt*t.Θ1dt) - (t.g/t.L1)*Math.sin(t.Θ1);
                     let f2 = (t.L1/t.L2)*Math.sin(t.Θ1-t.Θ2) - (t.g/t.L2)*Math.sin(t.Θ2);
 
                     return {f1, f2};
@@ -177,8 +177,8 @@
                     let f = this.second_order_diffs();
                     let a = this.alphas();
 
-                    t.Θ1dt = t.Θ1dt*t.loss + dt*(f.f1 - a.a1*f.f2) / (1 - a.a1*a.a2)  - dt*t.g*Math.sin(t.Θ1);;
-                    t.Θ2dt = t.Θ2dt*t.loss + dt*(f.f2 - a.a1*f.f1) / (1 - a.a1*a.a2)  - dt*t.g*Math.sin(t.Θ2);;
+                    t.Θ1dt = t.Θ1dt*t.loss - dt*t.g*Math.abs(Math.sin(t.Θ1)) + dt*(f.f1 - a.a1*f.f2) / (1 - a.a1*a.a2);
+                    t.Θ2dt = t.Θ2dt*t.loss - dt*t.g*Math.abs(Math.sin(t.Θ2)) + dt*(f.f2 - a.a1*f.f1) / (1 - a.a1*a.a2);
 
                     t.Θ1 += t.Θ1dt*dt; 
                     t.Θ2 += t.Θ2dt*dt;
