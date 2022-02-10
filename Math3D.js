@@ -570,7 +570,7 @@ export class Math3D { //Bunch of static methods for doing math in 3D
                     tree[j].neighbors.push(newNeighborj);
                 }
             }
-            tree[i].neighbors.sort(function(a,b) {return a.dist - b.dist}); //Sort by distance
+            tree[i].neighbors.sort(function(a,b) {return a.dist - b.dist}); //Sort by distance, nearest to farthest
         }
 
         return tree;

@@ -104,7 +104,7 @@ export class Physics {
         /*
         How to make dynamic bounding volume tree:
         1. Find the bounding volume of all of the objects combined.
-        2. Now subdivide bounding volumes by whatever magnitude until you have groups of 2-5 objects close to each other.
+        2. Now subdivide bounding volumes by whatever magnitude until you have groups of 2-5 objects closest to each other.
         3. Use box collision checks on the tree to find the best candidates to search for collisions
         */
 
@@ -134,9 +134,8 @@ export class Physics {
 
         let head = JSON.parse(JSON.stringify(this.dynamicBoundingVolumeTree.proto));
 
-        let boxdims = [maxX-minX,maxY-minY,maxZ-minZ]; //height, width, depth 
-        let boxbounds = [boxdims[0]*0.5,boxdims[1]*0.5,boxdims[2]*0.5]
-        let boxpos = {x:boxbounds[0]+minX,y:boxbounds[1]+minY,z:boxbounds[2]+minZ}; //center of box
+        let boxpos = [(maxX+minX)*0.5,(maxY+minY)*0.5,(maxZ+minZ)*0.5]
+        let boxbounds = [maxX-boxpos[0],maxy-boxpos[1],maxz-boxpos[2]];
         
         head.position = boxpos;
         head.collisionBoundsScale = boxbounds; //radius to centers of each sides i.e. distance from center
@@ -189,21 +188,42 @@ export class Physics {
             return head;
         }
         else { //dynamic AABB trees
-            let tree = Math3D.nearestNeighborSearch(positions,this.globalSettings.maxDistCheck);
 
             /**
-            let node = { //all positions
-                idx: null, //index in input position array
-                position: [0,0,0], //copy of position vector
-                neighbors: [] //neighbor nodes within the limit distance
-            };
+             *  -------
+             * |   o   |
+             * |  o    |
+             * |o   o  |
+             * |   o   |
+             * |      o|
+             *  -------
+             * 
+             * Model: Bound all of the particles by nearest neighbors
+             *        Now bound the bounding boxes by nearest 3 bounding boxes
+             *        Continue until only 2 bounding boxes returned. Bound to head box containing all boxes.
+             * 
+            */
 
-            let neighbor = {
-                idx: null, //index in input position array
-                position: [0,0,0], //copy of position vector
-                dist: null //distance from parent
-            };
+
+            /** nearestNeighborSearch tree returned:
+             * 
+                let node = { 
+                    idx: null, //index in input position array
+                    position: [0,0,0], //copy of position vector
+                    neighbors: neighbor[] //neighbor nodes within the limit distance
+                };
+
+                let neighbor = {
+                    idx: null, //index in input position array
+                    position: [0,0,0], //copy of position vector
+                    dist: null //distance from parent
+                };
+
+                tree = node[] with a node for each position fed in and sorted neighbor nodes from nearest to farthest
              */
+
+            let tree = Math3D.nearestNeighborSearch(positions,this.globalSettings.maxDistCheck);
+
 
             let index = Math.floor(Math.random()*tree.length); //beginning with random node
             let searching = true; 
@@ -212,45 +232,76 @@ export class Physics {
             let genBoundingBoxLevel = (tree,volumes) => {
                 let newVolumes = [];
                 let volumePositions = [];
-                let foundidxs=[];
-                while(searching && count < tree.length) { 
+                let foundidxs={};
+                while(searching && (count < tree.length)) { 
                     let node = tree[index]; 
-                    let i = 0; //starting with the farthest neighbor in the node
+                    let i = 0; 
                     let j = 0;
-                    let ux = 0, uy = 0, uz = 0, mx = 0, my = 0, mz = 0;
+
+                    //starting position 
+                    let ux = positions[node.idx][0]-volumes[node.idx].collisionBoundsScale[0], 
+                        uy = positions[node.idx][1]-volumes[node.idx].collisionBoundsScale[1], 
+                        uz = positions[node.idx][2]-volumes[node.idx].collisionBoundsScale[2], 
+                        mx = positions[node.idx][0]+volumes[node.idx].collisionBoundsScale[0], 
+                        my = positions[node.idx][1]+volumes[node.idx].collisionBoundsScale[1], 
+                        mz = positions[node.idx][2]+volumes[node.idx].collisionBoundsScale[2];
+
                     let newvolume = this.newBoundingVolume()
-                    while(i < node.neighbors.length && j < 3) { //make a box around the nearest 3 neighbors 
-                        if(foundidxs.indexOf(node.neighbors[i].idx) > -1) { i++; continue; }
-                        if(ux > positions[node.neighbors[i].idx][0]-volumes[node.neighbors[i].idx].collisionBoundsScale[0]) ux = positions[node.neighbors[i].idx][0]-volumes[node.neighbors[i].idx].collisionBoundsScale[0];
-                        if(mx < positions[node.neighbors[i].idx][0]+volumes[node.neighbors[i].idx].collisionBoundsScale[0]) mx = positions[node.neighbors[i].idx][0]+volumes[node.neighbors[i].idx].collisionBoundsScale[0];
-                        if(uy > positions[node.neighbors[i].idx][1]-volumes[node.neighbors[i].idx].collisionBoundsScale[1]) uy = positions[node.neighbors[i].idx][1]-volumes[node.neighbors[i].idx].collisionBoundsScale[1];
-                        if(my < positions[node.neighbors[i].idx][1]+volumes[node.neighbors[i].idx].collisionBoundsScale[1]) my = positions[node.neighbors[i].idx][1]+volumes[node.neighbors[i].idx].collisionBoundsScale[1];
-                        if(uz > positions[node.neighbors[i].idx][2]-volumes[node.neighbors[i].idx].collisionBoundsScale[2]) uz = positions[node.neighbors[i].idx][2]-volumes[node.neighbors[i].idx].collisionBoundsScale[2];
-                        if(mz < positions[node.neighbors[i].idx][2]+volumes[node.neighbors[i].idx].collisionBoundsScale[2]) mz = positions[node.neighbors[i].idx][2]+volumes[node.neighbors[i].idx].collisionBoundsScale[2];
+
+                    newvolume.children.push(volumes[node.idx]);
+                    newvolume.bodies.push(bodies[node.idx]);
+                    volumes[node.idx].parent = newvolume;
+                    foundidxs[node.idx] = true; //remove added neighbors from candidate search for bounding boxes (to make progressively larger boxes around the current node)
+                    i++; j++;
+
+                    while(i < node.neighbors.length && j < 3) { //make a box around the first 3 unchecked nearest neighbors 
+                        if(foundidxs[node.neighbors[i].idx]) { i++; continue; }
+
+                        let uxn = positions[node.neighbors[i].idx][0]-volumes[node.neighbors[i].idx].collisionBoundsScale[0], 
+                            uyn = positions[node.neighbors[i].idx][1]-volumes[node.neighbors[i].idx].collisionBoundsScale[1], 
+                            uzn = positions[node.neighbors[i].idx][2]-volumes[node.neighbors[i].idx].collisionBoundsScale[2], 
+                            mxn = positions[node.neighbors[i].idx][0]+volumes[node.neighbors[i].idx].collisionBoundsScale[0], 
+                            myn = positions[node.neighbors[i].idx][1]+volumes[node.neighbors[i].idx].collisionBoundsScale[1], 
+                            mzn = positions[node.neighbors[i].idx][2]+volumes[node.neighbors[i].idx].collisionBoundsScale[2];
+
+                        if(ux > uxn) ux = uxn;
+                        if(mx < mxn) mx = mxn;
+                        if(uy > uyn) uy = uyn;
+                        if(my < myn) my = myn;
+                        if(uz > uzn) uz = uzn;
+                        if(mz < mzn) mz = mzn;
+
                         newvolume.children.push(volumes[node.neighbors[i].idx]);
+                        newvolume.bodies.push(bodies[node.neighbors[i].idx]);
                         volumes[node.neighbors[i].idx].parent = newvolume;
-                        tree.splice(node.neighbors[i].idx,1);
-                        foundidxs.push(node.neighbors[i].idx);
+                        foundidxs[node.neighbors[i].idx] = true; //remove added neighbors from candidate search for bounding boxes (to make progressively larger boxes)
                         i++; j++;
                     }
-                    let bounds = [mx*0.5,my*0.5,mz*0.5];
-                    let pos = [bounds[0]+ux,bounds[1]+uy,bounds[2]+uz]
+
+                    let pos = [(mx+ux)*0.5,(my+uy)*0.5,(mz+uz)*0.5];
+                    let bounds = [mx-pos[0],my-pos[1],mz-pos[2]];
+
                     newvolume.position = pos;
                     newvolume.collisionBoundsScale = bounds;
+                    if(newvolume.bodies.length === 1) newvolume = node[index]; //just forego the bounding volume if not bounding more than one node
                     
-                    //then walk to the nearest unchecked node and make a box around the next 2 or 3 nodes
-                    // then continue till you run out of nodes to check. Shoud be left with a bounding tree with larger to smaller boxes
                     newVolumes.push(newvolume);
                     volumePositions.push(pos);
                     
                     //now find the next not-found neighbor
-                    while(node.neighbors.length > i) {
-                        if(foundidxs.indexOf(node.neighbors[i].idx) < 0) break;
-                            i++;
+                    while(i < node.neighbors.length) {
+                        if(!foundidxs[node.neighbors[i].idx]) break;
+                        i++;
                     }
-                    if(node.neighbors.length > i) {
-                        index = node.neighbors.length[i].idx;
-                    } else index = 0; //just jump back to zero and keep looking
+
+                    // then walk to the nearest unchecked node and make a box around the next 2 or 3 nearest neighbors
+                    // then continue till you run out of nodes to check. Should be left with a bounding tree with larger to smaller boxes
+                    // smallest nodes (the bodies) should be parented to their bounding boxes and so on afterward.
+
+                    if(i < node.neighbors.length) {
+                        index = node.neighbors[i].idx; //set the next node index to the unchecked node
+                    } else if(foundidxs.length < tree.length) {index = 0;} //else just jump back to zero and keep looking
+                    else searching = false; //no more to search
                     
                     count++;
                 }
@@ -258,25 +309,23 @@ export class Physics {
                 return [newVolumes,volumePositions];
             }
 
-            let result = genBoundingBoxLevel(tree,volumes);
-            let nextTree = Math3D.nearestNeighborSearch(result[1],this.globalSettings.maxDistCheck);
-            while(nextTree.length > 2) {
+            //generate the largest bounding box level
+            let result = genBoundingBoxLevel(tree,[...bodies]);
+
+            // first result will be a list of volumes around each set of nearest 3 neighbors
+            
+            while(result[0].length > 2) { //and as long as we have enough volumes to bound, keep bounding each set pf volumes into larger volumes
+                let nextTree = Math3D.nearestNeighborSearch(result[1],this.globalSettings.maxDistCheck);
                 result = genBoundingBoxLevel(nextTree,result[0]);
                 nextTree = Math3D.nearestNeighborSearch(result[1],this.globalSettings.maxDistCheck);
             }
 
             head.children = result[0]; //that should parent the final bounding boxes to the main box
 
+            head.children.forEach((n) => {n.parent = head;})
+
             return head;
         }
-        /*
-            Now search children recursively till you have small enough groups to speed up collision checking
-
-            nearestneighborsearch bodies by radius,
-            next create bounds at that radius to capture all bodies
-            repeat at a smaller radius till no more objects can be grouped at a minimum group size or radius
-            bodies will be referenced in each 
-        */
     }
 
     timeStep(dt, bodies=this.physicsBodies) { //dt in seconds
