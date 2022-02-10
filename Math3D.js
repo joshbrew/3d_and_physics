@@ -279,6 +279,9 @@ export class Math3D { //Bunch of static methods for doing math in 3D
 		return m;
     }
 
+    //
+    //Mat4s are represented by 2D arrays [[row0],[row1],[row3],[row4]]
+    // you can use common libraries for 1D array-formatted matrix operations like glMatrix
     static makeIdentityM4() {
         return [
             [1,0,0,0],

@@ -11,7 +11,7 @@ export class GraphNode {
         this.localRot = {x:0,y:0,z:0}; //Local x,y,z rotation (rads). Render as global + local rot
         this.globalScale = {x:1,y:1,z:1};
         this.localScale = {x:1,y:1,z:1};
-        this.functions = []; // List of functions. E.g. function foo(x) {return x;}; this.functions["foo"] = foo; this.functions.foo = foo(x) {return x;}. Got it?
+        this.functions = {}; // List of functions. E.g. function foo(x) {return x;}; this.functions["foo"] = foo; this.functions.foo = foo(x) {return x;}. Got it?
 
         //3D Rendering stuff
         this.model = null; //
@@ -47,6 +47,16 @@ export class GraphNode {
                 this.children.splice(idx,1);
             }
         });
+    }
+
+    addFunction(key,fn=()=>{}) {
+        this.functions[key] = fn;
+    }
+
+    //call a local function
+    callFunction(key,args=[]) {
+        let fn = this.functions[key];
+        if(typeof fn === 'function') return fn(...args)
     }
 
     translateMeshGlobal(offset=[0,0,0]){ //Recursive global translation of this node and all children

@@ -8,7 +8,8 @@
 
 Largely untested, more for exercise but eventually will get used by me (and thus cleaned up & demo'd). 
 
-The camera matrix math in this version is based on using 2D matrices which is not quite as efficient but is conceptually easier. Meshes are still 1D arrays e.g. `[p0x,p0y,p0z,p1x,p1y,p1z,p2x,p2y,p2z]`
+The Mat4 and Camera matrix math in this version is based on using 2D arrays which is not quite as efficient but is conceptually easier. Meshes are still 1D arrays e.g. `[p0x,p0y,p0z,p1x,p1y,p1z,p2x,p2y,p2z]`
+Lots of better libraries for 1D array based matrix operations.
 
 Bonus jank Double Pendulum simulation with 3 different derivations rendering side by side. They all have... issues... 
 This is being made to explore more of the math of complex systems and learn lagrangian mechanics.

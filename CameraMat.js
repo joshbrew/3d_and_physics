@@ -7,8 +7,7 @@ export class Camera { //pinhole camera model. Use to set your 3D rendering view 
         up=[0,1,0],
         clientWidth=window.innerWidth,
         clientHeight=window.innerHeight
-        )
-        {
+    ) {
 
         this.position = {x:position[0],y:position[1],z:position[2]};
         this.target = {x:target[0],y:target[1],z:target[2]};
