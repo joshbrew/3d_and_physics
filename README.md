@@ -1,7 +1,7 @@
 # 3D and Physics Math Tests - JS
  Some 3D and rendering math in js. 
  
- - Basic physics (with AABB and octrees, but not implemented yet in the collision checks), 
+ - Basic physics (with AABB trees and octrees, but not implemented yet in the collision checks), 
  - graph node trees for translating/rotating meshes 
  - 3D math e.g. basic linear algebra and calculus. Efficient nearest neighbor search.
  - pinhole camera model
