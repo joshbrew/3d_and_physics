@@ -251,7 +251,7 @@ export class Physics {
                     newvolume.children.push(volumes[node.idx]);
                     newvolume.bodies.push(bodies[node.idx]);
                     volumes[node.idx].parent = newvolume;
-                    foundidxs[node.idx] = true; //remove added neighbors from candidate search for bounding boxes (to make progressively larger boxes around the current node)
+                    foundidxs[node.idx] = true; //remove added neighbors from candidate search for bounding boxes (till none left to search = move onto next layer of boxes)
                     i++; j++;
 
                     while(i < node.neighbors.length && j < 3) { //make a box around the first 3 unchecked nearest neighbors 
@@ -274,7 +274,7 @@ export class Physics {
                         newvolume.children.push(volumes[node.neighbors[i].idx]);
                         newvolume.bodies.push(bodies[node.neighbors[i].idx]);
                         volumes[node.neighbors[i].idx].parent = newvolume;
-                        foundidxs[node.neighbors[i].idx] = true; //remove added neighbors from candidate search for bounding boxes (to make progressively larger boxes)
+                        foundidxs[node.neighbors[i].idx] = true; //remove added neighbors from candidate search for bounding boxes (till none left to search = move onto next layer of boxes)
                         i++; j++;
                     }
 
